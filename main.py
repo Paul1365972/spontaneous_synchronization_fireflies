@@ -42,9 +42,9 @@ class Firefly:
     def update_timer(self, fireflies):
         self.blink_timer -= 1
         for other in fireflies:
-            distance = self.distance_to(other)
             if self != other:
-                self.blink_timer -= distance < 100 * other.blinking * (1 - (self.blink_timer / self.blink_rate)) * self.blink_rate * 0.05
+                distance = self.distance_to(other)
+                self.blink_timer -= distance < 100 * other.blinking * (self.blink_rate - self.blink_timer) * 0.05
 
     def distance_to(self, other):
         return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
