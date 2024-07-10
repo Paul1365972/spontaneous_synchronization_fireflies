@@ -1,74 +1,27 @@
 import pygame
 import random
-import math
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_agg as agg
+from sim import Simulation
+import numpy as np
 
+
+FPS = 60
+WIDTH, HEIGHT = 500, 500
 
 matplotlib.use("Agg")
 
 pygame.init()
-
-WIDTH, HEIGHT = 500, 500
 screen = pygame.display.set_mode((WIDTH * 2, HEIGHT))
 pygame.display.set_caption("Firefly Simulation")
-
-FPS = 60
-TICKS = 0
-
-class Firefly:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.size = 5
-        self.blink_rate = FPS * 5
-        self.blink_timer = random.randint(0, self.blink_rate)
-        self.blink_animation = 0
-
-    # Move brownian motion and keep inside bounds
-    def update_move(self):
-        self.x += random.randint(-1, 1)
-        self.y += random.randint(-1, 1)
-
-        self.x = max(min(self.x, WIDTH - self.size), self.size)
-        self.y = max(min(self.y, HEIGHT - self.size), self.size)
-
-    # Update own blinking state
-    def update_blink(self):
-        self.blinking = False
-        self.blink_animation -= 1
-
-        if self.blink_timer <= 0:
-            self.blinking = True
-            self.blink_timer = self.blink_rate
-            self.blink_animation = 10
-
-    # Update iteractions with each other
-    def update_timer(self, fireflies):
-        self.blink_timer -= 1
-        for other in fireflies:
-            if self != other:
-                distance = self.distance_to(other)
-                self.blink_timer -= distance < 100 * other.blinking * (self.blink_rate - self.blink_timer) * 0.05
-
-    def distance_to(self, other):
-        return math.sqrt((self.x - other.x)**2 + (self.y - other.y)**2)
-
-    def draw(self):
-        dim = (50, 50, 0)
-
-        color = (255, 255, 100) if self.blink_animation > 0 else (0, 0, 0)
-        pygame.draw.circle(screen, color, (int(self.x), int(self.y)), self.size)
+clock = pygame.time.Clock()
 
 
-# Create fireflies
-fireflies = [Firefly(random.randint(0, WIDTH), random.randint(0, HEIGHT)) for _ in range(100)]
+simulation = Simulation(WIDTH, HEIGHT)
 
-blinking_data = []
-def update_graph_data(fireflies):
-    blinking_count = sum([1 for f in fireflies if f.blink_animation > 0])
-    blinking_data.append(blinking_count)
+for _ in range(100):
+    simulation.add_firefly(FPS * 5, random.randint(0, FPS * 5), 100, 1)
 
 def update_graph_visuals():
     fig = plt.figure(figsize=(WIDTH/72, HEIGHT/72), dpi=72)
@@ -76,7 +29,8 @@ def update_graph_visuals():
     ax.set_xlim((TICKS - FPS * 5, TICKS))
     ax.set_xlabel('Time (frames)')
     ax.set_ylabel('Blinking Fireflies')
-    ax.plot(blinking_data, color='yellow')
+    ax.grid()
+    ax.plot(blinking_data)
     canvas = agg.FigureCanvasAgg(fig)
     canvas.draw()
     renderer = canvas.get_renderer()
@@ -86,12 +40,13 @@ def update_graph_visuals():
     plt.close()
     return surface
 
-# Main loop
+
 running = True
 fast_forward = False
 plots_enabled = False
 plot_surface = None
-clock = pygame.time.Clock()
+TICKS = 0
+blinking_data = []
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -102,22 +57,25 @@ while running:
             elif event.key == pygame.K_p:
                 plots_enabled = not plots_enabled
 
+    # Step simulation
+    simulation.update()
+
+    # Render simulation
     screen.fill((48, 48, 64))
+    dim_yellow, bright_yellow = np.array([50, 50, 0]), np.array([255, 255, 100])
+    for firefly in simulation.fireflies:
+        if firefly.blink_animation > 0:
+            blink_strength = firefly.blink_animation / 20.0
+            color = (dim_yellow * (1 - blink_strength) + bright_yellow * blink_strength).astype(int)
+        else:
+            color = np.array([0, 0, 0])
+        pygame.draw.circle(screen, color.tolist(), (int(firefly.x), int(firefly.y)), 5)
 
-    # Update and draw fireflies
-    for firefly in fireflies:
-        firefly.update_move()
+    # Update logs
+    blinking_count = sum([1 for f in simulation.fireflies if f.blink_animation > 0])
+    blinking_data.append(blinking_count)
 
-    for firefly in fireflies:
-        firefly.update_blink()
-
-    for firefly in fireflies:
-        firefly.update_timer(fireflies)
-
-    for firefly in fireflies:
-        firefly.draw()
-
-    update_graph_data(fireflies)
+    # Render plots
     if plots_enabled:
         if plot_surface is None or TICKS % 10 == 0:
             plot_surface = update_graph_visuals()
