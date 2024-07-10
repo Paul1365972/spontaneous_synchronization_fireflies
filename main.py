@@ -21,7 +21,7 @@ clock = pygame.time.Clock()
 simulation = Simulation(WIDTH, HEIGHT)
 
 for _ in range(100):
-    simulation.add_firefly(FPS * 5, random.randint(0, FPS * 5), 100, 1)
+    simulation.add_firefly(FPS * random.randint(4, 6), random.randint(0, FPS * 5), 100, 1)
 
 def update_graph_visuals():
     fig = plt.figure(figsize=(WIDTH/72, HEIGHT/72), dpi=72)

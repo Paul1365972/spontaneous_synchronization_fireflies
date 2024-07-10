@@ -7,8 +7,8 @@ class Simulation:
         self.fireflies = []
         self.blinking_data = []
 
-    def add_firefly(self, blink_rate, blink_timer, distance, speed):
-        self.fireflies.append(Firefly(random.randint(0, self.width), random.randint(0, self.height), blink_rate, blink_timer, distance, speed))
+    def add_firefly(self, blink_rate, blink_timer, distance, speed, coupling):
+        self.fireflies.append(Firefly(random.randint(0, self.width), random.randint(0, self.height), blink_rate, blink_timer, distance, speed, coupling))
 
     def update(self):
         self.update_move()
@@ -39,15 +39,16 @@ class Simulation:
                 for other in self.fireflies:
                     if firefly != other:
                         distance_sq = (firefly.x - other.x)**2 + (firefly.y - other.y)**2
-                        other.blink_timer -= (distance_sq < other.distance ** 2) * (other.blink_rate - other.blink_timer) * 0.05
+                        other.blink_timer -= (distance_sq < other.distance ** 2) * (other.blink_rate - other.blink_timer) * other.coupling
 
 class Firefly:
-    def __init__(self, x, y, blink_rate, blink_timer, distance, speed):
+    def __init__(self, x, y, blink_rate, blink_timer, distance, speed, coupling):
         self.x = x
         self.y = y
         self.blink_rate = blink_rate
         self.blink_timer = blink_timer
         self.distance = distance
         self.speed = speed
+        self.coupling = coupling
         self.blinking = False
         self.blink_animation = 0
